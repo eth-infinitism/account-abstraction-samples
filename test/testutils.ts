@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat'
-// import { toHex } from 'hardhat/internal/util/bigint'
+import { toHex } from 'hardhat/internal/util/bigint'
 import {
   arrayify,
   hexConcat,
@@ -12,24 +12,27 @@ import {
 } from 'ethers/lib/utils'
 import { BigNumber, BigNumberish, Contract, ContractReceipt, Signer, Wallet } from 'ethers'
 import {
+  EntryPoint,
   EntryPoint__factory,
   IERC20,
   SimpleAccount,
-  SimpleAccountFactory,
   SimpleAccountFactory__factory,
   SimpleAccount__factory,
-  TestERC20__factory,
-  TestPaymasterRevertCustomError__factory
+  SimpleAccountFactory,
+  TestPaymasterRevertCustomError__factory, TestERC20__factory
 } from '../typechain'
 import { BytesLike, Hexable } from '@ethersproject/bytes'
-// import { JsonRpcProvider } from '@ethersproject/providers'
+import { JsonRpcProvider, Provider } from '@ethersproject/providers'
 import { expect } from 'chai'
 import { Create2Factory } from '../src/Create2Factory'
 import { debugTransaction } from './debugTx'
 import { UserOperation } from './UserOperation'
 import { packUserOp, simulateValidation } from './UserOp'
+import Debug from 'debug'
+import { toChecksumAddress } from 'ethereumjs-util'
 
-export const AddressZero = ethers.constants.AddressZero
+const debug = Debug('testutils')
+
 export const HashZero = ethers.constants.HashZero
 export const ONE_ETH = parseEther('1')
 export const TWO_ETH = parseEther('2')
@@ -70,9 +73,9 @@ export async function getTokenBalance (token: IERC20, address: string): Promise<
 let counter = 0
 
 // create non-random account, so gas calculations are deterministic
-export function createAccountOwner (): Wallet {
+export function createAccountOwner (provider: Provider = ethers.provider): Wallet {
   const privateKey = keccak256(Buffer.from(arrayify(BigNumber.from(++counter))))
-  return new ethers.Wallet(privateKey, ethers.provider)
+  return new ethers.Wallet(privateKey, provider)
   // return new ethers.Wallet('0x'.padEnd(66, privkeyBase), ethers.provider);
 }
 
@@ -86,7 +89,7 @@ export function callDataCost (data: string): number {
     .reduce((sum, x) => sum + x)
 }
 
-export async function calcGasUsage (rcpt: ContractReceipt, entryPoint: EntryPoint, beneficiaryAddress?: string): Promise<{ actualGasCost: BigNumberish }> {
+export async function calcGasUsage (rcpt: ContractReceipt, entryPoint: EntryPoint, beneficiaryAddress?: string): Promise<{ actualGasCost: BigNumber }> {
   const actualGas = await rcpt.gasUsed
   const logs = await entryPoint.queryFilter(entryPoint.filters.UserOperationEvent(), rcpt.blockHash)
   const { actualGasCost, actualGasUsed } = logs[0].args
@@ -102,15 +105,6 @@ export async function calcGasUsage (rcpt: ContractReceipt, entryPoint: EntryPoin
 
 // helper function to create the initCode to deploy the account, using our account factory.
 export function getAccountInitCode (owner: string, factory: SimpleAccountFactory, salt = 0): BytesLike {
-  return hexConcat([
-    factory.address,
-    factory.interface.encodeFunctionData('createAccount', [owner, salt])
-  ])
-}
-
-export async function getAggregatedAccountInitCode (entryPoint: string, factory: TestAggregatedAccountFactory, salt = 0): Promise<BytesLike> {
-  // the test aggregated account doesn't check the owner...
-  const owner = AddressZero
   return hexConcat([
     factory.address,
     factory.interface.encodeFunctionData('createAccount', [owner, salt])
@@ -220,7 +214,7 @@ export async function checkForGeth (): Promise<void> {
 
   currentNode = await provider.request({ method: 'web3_clientVersion' })
 
-  console.log('node version:', currentNode)
+  debug('node version:', currentNode)
   // NOTE: must run geth with params:
   // --http.api personal,eth,net,web3
   // --allow-insecure-unlock
@@ -278,7 +272,7 @@ export async function checkForBannedOps (txHash: string, checkPaymaster: boolean
 
 export async function deployEntryPoint (provider = ethers.provider): Promise<EntryPoint> {
   const create2factory = new Create2Factory(provider)
-  const addr = await create2factory.deploy(EntryPoint__factory.bytecode, process.env.SALT, process.env.COVERAGE != null ? 20e6 : 8e6)
+  const addr = toChecksumAddress(await create2factory.deploy(EntryPoint__factory.bytecode, process.env.SALT, process.env.COVERAGE != null ? 20e6 : 8e6))
   return EntryPoint__factory.connect(addr, provider.getSigner())
 }
 
@@ -301,12 +295,11 @@ export async function createAccount (
   }> {
   const accountFactory = _factory ?? await new SimpleAccountFactory__factory(ethersSigner).deploy(entryPoint)
   const implementation = await accountFactory.accountImplementation()
-  // const entryPointContract = EntryPoint__factory.connect(entryPoint, ethersSigner)
-  // const senderCreator = await entryPointContract.senderCreator()
-  // await (ethersSigner.provider as JsonRpcProvider).send('hardhat_setBalance', [senderCreator, toHex(100e18)])
-  // const senderCreatorSigner = await ethers.getImpersonatedSigner(senderCreator)
-  // await accountFactory.connect(senderCreatorSigner).createAccount(accountOwner, 0)
-  await accountFactory.createAccount(accountOwner, 0)
+  const entryPointContract = EntryPoint__factory.connect(entryPoint, ethersSigner)
+  const senderCreator = await entryPointContract.senderCreator()
+  await (ethersSigner.provider as JsonRpcProvider).send('hardhat_setBalance', [senderCreator, toHex(100e18)])
+  const senderCreatorSigner = await ethers.getImpersonatedSigner(senderCreator)
+  await accountFactory.connect(senderCreatorSigner).createAccount(accountOwner, 0)
   const accountAddress = await accountFactory.getAddress(accountOwner, 0)
   const proxy = SimpleAccount__factory.connect(accountAddress, ethersSigner)
   return {
@@ -331,6 +324,10 @@ export function packPaymasterData (paymaster: string, paymasterVerificationGasLi
 
 export function unpackAccountGasLimits (accountGasLimits: string): { verificationGasLimit: number, callGasLimit: number } {
   return { verificationGasLimit: parseInt(accountGasLimits.slice(2, 34), 16), callGasLimit: parseInt(accountGasLimits.slice(34), 16) }
+}
+
+export function unpackAccountGasFees (accountGasFees: string): { maxPriorityFeePerGas: number, maxFeePerGas: number } {
+  return { maxPriorityFeePerGas: parseInt(accountGasFees.slice(2, 34), 16), maxFeePerGas: parseInt(accountGasFees.slice(34), 16) }
 }
 
 export interface ValidationData {
@@ -444,4 +441,21 @@ export async function findSimulationUserOpWithMin (f: (n: number) => Promise<Use
       }
     }, min, max, delta
   )
+}
+
+// call entryPoint.getUserOpHash, but use state-override to run it with specific code (e.g. eip-7702 delegate) on the sender's code.
+export async function callGetUserOpHashWithCode (entryPoint: EntryPoint, userop: UserOperation, senderCode: any): Promise<string> {
+  const stateOverride = senderCode == null
+    ? null
+    : {
+        [userop.sender]: {
+          code: senderCode
+        }
+      }
+  return await ethers.provider.send('eth_call', [
+    {
+      to: entryPoint.address,
+      data: entryPoint.interface.encodeFunctionData('getUserOpHash', [packUserOp(userop)])
+    }, 'latest', stateOverride
+  ])
 }

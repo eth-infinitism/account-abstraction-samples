@@ -8,12 +8,11 @@ import {
   VerifyingPaymaster__factory
 } from '../typechain'
 import {
-  AddressZero,
   createAccount,
   createAccountOwner, createAddress, decodeRevertReason,
   deployEntryPoint, packPaymasterData, parseValidationData
 } from './testutils'
-import { DefaultsForUserOp, fillAndSign, fillSignAndPack, packUserOp, simulateValidation } from './UserOp'
+import { AddressZero, DefaultsForUserOp, fillAndSign, fillSignAndPack, packUserOp, simulateValidation } from './UserOp'
 import { arrayify, defaultAbiCoder, hexConcat, parseEther } from 'ethers/lib/utils'
 import { PackedUserOperation } from './UserOperation'
 

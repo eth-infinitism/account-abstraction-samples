@@ -1,22 +1,11 @@
 /* solhint-disable one-contract-per-file */
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import "./SimpleAccount.sol";
-
-
-// TODO: publish ISenderCreator branch
-//import "@account-abstraction/contracts/interfaces/ISenderCreator.sol";
-interface ISenderCreator {
-    /**
-     * @dev Creates a new sender contract.
-     * @return sender Address of the newly created sender contract.
-     */
-    function createSender(bytes calldata initCode) external returns (address sender);
-}
 
 /**
  * A sample factory contract for SimpleAccount
@@ -30,7 +19,7 @@ contract SimpleAccountFactory {
 
     constructor(IEntryPoint _entryPoint) {
         accountImplementation = new SimpleAccount(_entryPoint);
-//        senderCreator = IGetSenderCreator(address(_entryPoint)).senderCreator();
+        senderCreator = _entryPoint.senderCreator();
     }
 
     /**
@@ -40,7 +29,7 @@ contract SimpleAccountFactory {
      * This method returns an existing account address so that entryPoint.getSenderAddress() would work even after account creation
      */
     function createAccount(address owner,uint256 salt) public returns (SimpleAccount ret) {
-//        require(msg.sender == address(senderCreator), "only callable from SenderCreator");
+        require(msg.sender == address(senderCreator), "only callable from SenderCreator");
         address addr = getAddress(owner, salt);
         uint256 codeSize = addr.code.length;
         if (codeSize > 0) {

@@ -1,8 +1,6 @@
 import { assert } from 'chai'
 import { ethers } from 'hardhat'
 
-import { AddressZero } from './testutils'
-
 import {
   EntryPoint,
   EntryPoint__factory,
@@ -19,6 +17,7 @@ import {
 } from '../typechain/contracts/TokenPaymaster'
 import { BigNumber } from 'ethers'
 import { parseEther } from 'ethers/lib/utils'
+import { AddressZero } from './UserOp'
 
 const priceDenominator = BigNumber.from(10).pow(26)
 

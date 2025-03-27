@@ -470,7 +470,7 @@ describe('TokenPaymaster', function () {
     await token.transfer(account.address, await token.balanceOf(await ethersSigner.getAddress()))
     await token.sudoApprove(account.address, paymaster.address, ethers.constants.MaxUint256)
 
-    const depositInfo = await entryPoint.deposits(paymaster.address)
+    const depositInfo = await entryPoint.getDepositInfo(paymaster.address)
     await paymaster.withdrawTo(account.address, depositInfo.deposit)
 
     // deposit exactly the minimum amount so the next UserOp makes it go under

@@ -1,15 +1,16 @@
 import { aggregate, BlsSignerFactory, BlsVerifier } from '@thehubbleproject/bls/dist/signer'
 import { arrayify, defaultAbiCoder, hexConcat } from 'ethers/lib/utils'
 import {
+  BLSAccount,
+  BLSAccountFactory,
+  BLSAccountFactory__factory,
+  BLSAccount__factory,
   BLSOpen__factory,
   BLSSignatureAggregator,
   BLSSignatureAggregator__factory,
-  BLSAccount,
-  BLSAccount__factory,
-  BLSAccountFactory,
-  BLSAccountFactory__factory,
   BrokenBLSAccountFactory__factory,
-  EntryPoint
+  EntryPoint,
+  EntryPoint__factory
 } from '../typechain'
 import { ethers } from 'hardhat'
 import { createAddress, deployEntryPoint, fund, ONE_ETH } from './testutils'
@@ -19,11 +20,18 @@ import { keccak256 } from 'ethereumjs-util'
 import { hashToPoint } from '@thehubbleproject/bls/dist/mcl'
 import { BigNumber, Signer } from 'ethers'
 import { BytesLike, hexValue } from '@ethersproject/bytes'
+import { JsonRpcProvider } from '@ethersproject/providers'
+import { toHex } from 'hardhat/internal/util/bigint'
 
-async function deployBlsAccount (ethersSigner: Signer, factoryAddr: string, blsSigner: any): Promise<BLSAccount> {
+async function deployBlsAccount (ethersSigner: Signer, factoryAddr: string, blsSigner: any, entryPoint: string): Promise<BLSAccount> {
   const factory = BLSAccountFactory__factory.connect(factoryAddr, ethersSigner)
-  const addr = await factory.callStatic.createAccount(0, blsSigner.pubkey)
-  await factory.createAccount(0, blsSigner.pubkey)
+
+  const entryPointContract = EntryPoint__factory.connect(entryPoint, ethersSigner)
+  const senderCreator = await entryPointContract.senderCreator()
+  await (ethersSigner.provider as JsonRpcProvider).send('hardhat_setBalance', [senderCreator, toHex(100e18)])
+  const senderCreatorSigner = await ethers.getImpersonatedSigner(senderCreator)
+  const addr = await factory.connect(senderCreatorSigner).callStatic.createAccount(0, blsSigner.pubkey)
+  await factory.connect(senderCreatorSigner).createAccount(0, blsSigner.pubkey)
   return BLSAccount__factory.connect(addr, ethersSigner)
 }
 
@@ -53,8 +61,8 @@ describe('bls account', function () {
 
     accountDeployer = await new BLSAccountFactory__factory(etherSigner).deploy(entrypoint.address, blsAgg.address)
 
-    account1 = await deployBlsAccount(etherSigner, accountDeployer.address, signer1)
-    account2 = await deployBlsAccount(etherSigner, accountDeployer.address, signer2)
+    account1 = await deployBlsAccount(etherSigner, accountDeployer.address, signer1, entrypoint.address)
+    account2 = await deployBlsAccount(etherSigner, accountDeployer.address, signer2, entrypoint.address)
   })
 
   it('#getTrailingPublicKey', async () => {

@@ -2,12 +2,12 @@
 # yarn lockfile v1
 
 
-"@account-abstraction/contracts@^0.7.0":
-  version "0.7.0"
-  resolved "https://registry.yarnpkg.com/@account-abstraction/contracts/-/contracts-0.7.0.tgz#f0f60d73e8d6ef57b794b07f8ab7b4779a3814c6"
-  integrity sha512-Bt/66ilu3u8I9+vFZ9fTd+cWs55fdb9J5YKfrhsrFafH1drkzwuCSL/xEot1GGyXXNJLQuXbMRztQPyelNbY1A==
+"@account-abstraction/contracts@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@account-abstraction/contracts/-/contracts-0.8.0.tgz#7633687d95a331fa6ba0aa788e9384308b00539c"
+  integrity sha512-8krPx/gpnoT+5xAroagVCbeA7FbUigMZWXFKKPm+oghyr29Dksssdx5sI7xGv9212i4JPaDDUGFk58dpuwVgHA==
   dependencies:
-    "@openzeppelin/contracts" "^5.0.0"
+    "@openzeppelin/contracts" "^5.1.0"
     "@uniswap/v3-periphery" "^1.4.3"
 
 "@adraffy/ens-normalize@1.10.1":
@@ -863,7 +863,7 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.4.2-solc-0.7.tgz#38f4dbab672631034076ccdf2f3201fab1726635"
   integrity sha512-W6QmqgkADuFcTLzHL8vVoNBtkwjvQRpYIAom7KiUNoLKghyx3FgH0GBjt8NRvigV1ZmMOBllvE1By1C+bi8WpA==
 
-"@openzeppelin/contracts@^5.0.0", "@openzeppelin/contracts@^5.1.0":
+"@openzeppelin/contracts@^5.1.0":
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-5.1.0.tgz#4e61162f2a2bf414c4e10c45eca98ce5f1aadbd4"
   integrity sha512-p1ULhl7BXzjjbha5aqst+QMLY+4/LCWADXOCsmLHRM77AqiPjnd9vvUN9sosUfhL9JGKpZ0TjEGxgvnizmWGSA==
@@ -3433,7 +3433,7 @@ debug@3.2.6:
   dependencies:
     ms "^2.1.1"
 
-debug@4, debug@^4.1.1, debug@^4.3.1, debug@^4.3.2, debug@^4.3.4, debug@^4.3.5:
+debug@4, debug@^4.1.1, debug@^4.3.1, debug@^4.3.2, debug@^4.3.4, debug@^4.3.5, debug@^4.4.0:
   version "4.4.0"
   resolved "https://registry.yarnpkg.com/debug/-/debug-4.4.0.tgz#2b3f2aea2ffeb776477460267377dc8710faba8a"
   integrity sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA==

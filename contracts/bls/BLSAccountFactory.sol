@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -17,9 +17,11 @@ import "./BLSAccount.sol";
  */
 contract BLSAccountFactory {
     BLSAccount public immutable accountImplementation;
+    ISenderCreator public immutable senderCreator;
 
     constructor(IEntryPoint entryPoint, address aggregator){
         accountImplementation = new BLSAccount(entryPoint, aggregator);
+        senderCreator = entryPoint.senderCreator();
     }
 
     /**
@@ -30,6 +32,7 @@ contract BLSAccountFactory {
      * Also note that our BLSSignatureAggregator requires that the public key is the last parameter
      */
     function createAccount(uint256 salt, uint256[4] calldata aPublicKey) public returns (BLSAccount) {
+        require(msg.sender == address(senderCreator), "only callable from SenderCreator");
 
         // the BLSSignatureAggregator depends on the public-key being the last 4 uint256 of msg.data.
         uint256 slot;

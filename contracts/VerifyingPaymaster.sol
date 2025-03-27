@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.28;
 
 /* solhint-disable reason-string */
 /* solhint-disable no-inline-assembly */
@@ -43,11 +43,10 @@ contract VerifyingPaymaster is BasePaymaster {
     function getHash(PackedUserOperation calldata userOp, uint48 validUntil, uint48 validAfter)
     public view returns (bytes32) {
         //can't use userOp.hash(), since it contains also the paymasterAndData itself.
-        address sender = userOp.getSender();
         return
             keccak256(
             abi.encode(
-                sender,
+                userOp.sender,
                 userOp.nonce,
                 keccak256(userOp.initCode),
                 keccak256(userOp.callData),

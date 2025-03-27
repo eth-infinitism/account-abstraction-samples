@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.23;
+pragma solidity ^0.8.28;
 
 /* solhint-disable avoid-low-level-calls */
 /* solhint-disable no-inline-assembly */
@@ -56,7 +56,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
      * @param value the value to pass in this call
      * @param func the calldata to pass in this call
      */
-    function execute(address dest, uint256 value, bytes calldata func) external {
+    function execute(address dest, uint256 value, bytes calldata func) external override {
         _requireFromEntryPointOrOwner();
         _call(dest, value, func);
     }
@@ -105,8 +105,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     /// implement template method of BaseAccount
     function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
     internal override virtual returns (uint256 validationData) {
-        bytes32 hash = MessageHashUtils.toEthSignedMessageHash(userOpHash);
-        if (owner != ECDSA.recover(hash, userOp.signature))
+        if (owner != ECDSA.recover(userOpHash, userOp.signature))
             return SIG_VALIDATION_FAILED;
         return SIG_VALIDATION_SUCCESS;
     }
