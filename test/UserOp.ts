@@ -345,11 +345,11 @@ export async function asyncSignUserOp (op: UserOperation, signer: Wallet | Signe
   if (isEip7702UserOp(userOpToSign)) {
     if (eip7702delegate == null) {
       const senderCode = await provider!.getCode(userOpToSign.sender)
-      if (!senderCode.startsWith('0xef0100')) {
+      if (senderCode.startsWith('0xef0100') !== true) {
         if (senderCode === '0x') {
           throw new Error('sender contract not deployed. is this the first EIP-7702 message? add eip7702delegate to options')
         }
-        throw new Error(`sender is not an eip7702 delegate: ${senderCode}`)
+        throw new Error(`sender is not an eip7702 delegate: ${senderCode as string}`)
       }
       eip7702delegate = hexDataSlice(senderCode, 3)
     }
